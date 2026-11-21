@@ -132,3 +132,15 @@ export function errorMessage(e: unknown): string {
   if (e && typeof e === 'object' && 'message' in e) return String((e as { message: string }).message)
   return 'Đã có lỗi xảy ra'
 }
+
+/** Giao dịch mới nhất (mọi ngày) */
+export async function fetchRecent(limit = 8) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(TXN_SELECT)
+    .order('txn_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data as Transaction[]
+}

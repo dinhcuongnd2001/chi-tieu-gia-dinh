@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ColorPicker } from '../components/ColorPicker'
+import { CategoryIcon, IconPicker } from '../lib/categoryIcons'
 import { PageHeader } from '../components/Layout'
+import { ChevronDown, ChevronUp, Eye, EyeOff, FolderPlus, Layers, Pencil, Plus, Save } from 'lucide-react'
 import { EmptyState, Modal, useToast } from '../components/ui'
 import { useCatalog } from '../context/CatalogContext'
 import { errorMessage } from '../lib/api'
-import { slugify } from '../lib/format'
+import { uniqueCode } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import { CATEGORY_COLORS, type Category } from '../lib/types'
 
@@ -38,58 +40,58 @@ export function Categories() {
 
   return (
     <>
-      <PageHeader title="Danh mục">
+      <PageHeader title="Danh mục" sub="Khai báo nhóm, khoản và badge để ghi chép">
         <button className="btn-primary" onClick={() => setEditing('new')}>
-          + Thêm nhóm
+          <Plus className="h-4 w-4" /> Thêm nhóm
         </button>
       </PageHeader>
-      <p className="mb-4 text-sm text-ink-2">
+      <p className="mb-5 rounded-2xl border border-white/80 bg-white/55 px-4 py-3 text-[13px] leading-relaxed text-ink-2">
         Mỗi <b>nhóm</b> (vd. Tiền hàng, Sinh hoạt) gồm nhiều <b>khoản</b> (vd. Nhập hàng, Tiền ship). Mỗi khoản có thể có các{' '}
         <b>badge</b> (vd. TQ, VN) để ghi chi tiết hơn. Bấm vào nhóm để quản lý khoản và badge.
       </p>
 
       {visible.length === 0 ? (
-        <EmptyState>Chưa có nhóm nào. Bấm “Thêm nhóm” để bắt đầu.</EmptyState>
+        <EmptyState icon={Layers} title="Chưa có nhóm nào">Bấm “Thêm nhóm” để bắt đầu.</EmptyState>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3.5 sm:grid-cols-2">
           {visible.map((c, idx) => {
             const its = items.filter((i) => i.category_code === c.code && i.is_active)
             const bCount = badges.filter((b) => its.some((i) => i.id === b.item_id) && b.is_active).length
             return (
               <div key={c.id} className={`card flex items-stretch overflow-hidden ${c.is_active ? '' : 'opacity-60'}`}>
-                <span className="w-1.5 shrink-0" style={{ background: c.color }} />
-                <Link to={`/danh-muc/${c.code}`} className="min-w-0 flex-1 p-4 hover:bg-surface-2">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <span className="text-lg">{c.icon}</span>
+                <span className="w-1.5 shrink-0 rounded-l-[18px]" style={{ background: c.color }} />
+                <Link to={`/danh-muc/${c.code}`} className="min-w-0 flex-1 p-4 transition hover:bg-white/50">
+                  <div className="flex items-center gap-2.5 font-display text-[15.5px] font-bold">
+                    <CategoryIcon icon={c.icon} color={c.color} size={42} />
                     <span className="truncate">{c.name}</span>
-                    {!c.is_active && <span className="rounded bg-surface-2 px-1.5 text-xs font-normal text-muted">Đã ẩn</span>}
+                    {!c.is_active && <span className="rounded-full bg-[rgba(60,48,28,.06)] px-2 py-0.5 font-sans text-[11px] font-semibold text-muted">Đã ẩn</span>}
                   </div>
-                  <div className="mt-1 text-xs text-muted">
-                    {its.length} khoản · {bCount} badge · mã <code>{c.code}</code>
+                  <div className="mt-2 text-xs text-muted">
+                    {its.length} khoản · {bCount} badge
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {its.slice(0, 5).map((i) => (
-                      <span key={i.id} className="rounded bg-surface-2 px-1.5 py-0.5 text-xs text-ink-2">
+                      <span key={i.id} className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-medium text-ink-2 ring-1 ring-line-2">
                         {i.name}
                       </span>
                     ))}
                     {its.length > 5 && <span className="text-xs text-muted">+{its.length - 5}</span>}
                   </div>
                 </Link>
-                <div className="flex flex-col border-l border-line text-sm">
-                  <button className="flex-1 px-3 text-muted hover:bg-surface-2 disabled:opacity-30" disabled={idx === 0} onClick={() => move(c, -1)} aria-label="Lên">
-                    ▲
+                <div className="flex flex-col border-l border-line text-muted">
+                  <button className="grid flex-1 place-items-center px-3 transition hover:bg-white/60 hover:text-accent-deep disabled:opacity-30" disabled={idx === 0} onClick={() => move(c, -1)} aria-label="Lên">
+                    <ChevronUp className="h-4 w-4" />
                   </button>
-                  <button className="flex-1 px-3 text-muted hover:bg-surface-2" onClick={() => setEditing(c)} aria-label="Sửa">
-                    ✎
+                  <button className="grid flex-1 place-items-center px-3 transition hover:bg-white/60 hover:text-accent-deep" onClick={() => setEditing(c)} aria-label="Sửa">
+                    <Pencil className="h-4 w-4" />
                   </button>
                   <button
-                    className="flex-1 px-3 text-muted hover:bg-surface-2 disabled:opacity-30"
+                    className="grid flex-1 place-items-center px-3 transition hover:bg-white/60 hover:text-accent-deep disabled:opacity-30"
                     disabled={idx === visible.length - 1}
                     onClick={() => move(c, 1)}
                     aria-label="Xuống"
                   >
-                    ▼
+                    <ChevronDown className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -99,7 +101,8 @@ export function Categories() {
       )}
 
       {hiddenCount > 0 && (
-        <button className="mt-4 text-sm text-accent" onClick={() => setShowHidden((v) => !v)}>
+        <button className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-link hover:underline" onClick={() => setShowHidden((v) => !v)}>
+          {showHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           {showHidden ? 'Ẩn các nhóm đã ẩn' : `Hiện ${hiddenCount} nhóm đã ẩn`}
         </button>
       )}
@@ -126,7 +129,7 @@ function CategoryModal({
   nextOrder: number
 }) {
   return (
-    <Modal open={value !== null} title={value === 'new' ? 'Thêm nhóm' : 'Sửa nhóm'} onClose={onClose}>
+    <Modal open={value !== null} title={value === 'new' ? 'Thêm nhóm' : 'Sửa nhóm'} icon={value === 'new' ? FolderPlus : Pencil} onClose={onClose}>
       {value !== null && (
         <CategoryForm key={value === 'new' ? 'new' : value.id} initial={value === 'new' ? null : value} onDone={onClose} nextColor={nextColor} nextOrder={nextOrder} />
       )}
@@ -145,12 +148,10 @@ function CategoryForm({
   nextColor: string
   nextOrder: number
 }) {
-  const { reload } = useCatalog()
+  const { reload, categories } = useCatalog()
   const toast = useToast()
   const [name, setName] = useState(initial?.name ?? '')
-  const [code, setCode] = useState(initial?.code ?? '')
-  const [codeTouched, setCodeTouched] = useState(false)
-  const [icon, setIcon] = useState(initial?.icon ?? '')
+  const [icon, setIcon] = useState(initial?.icon ?? 'tag')
   const [color, setColor] = useState(initial?.color ?? nextColor)
   const [busy, setBusy] = useState(false)
 
@@ -167,7 +168,13 @@ function CategoryForm({
       } else {
         await supabase
           .from('categories')
-          .insert({ name: name.trim(), code, icon: icon.trim() || null, color, sort_order: nextOrder })
+          .insert({
+            name: name.trim(),
+            code: uniqueCode(name, categories.map((c) => c.code), 'nhom'),
+            icon: icon.trim() || null,
+            color,
+            sort_order: nextOrder,
+          })
           .throwOnError()
       }
       await reload()
@@ -175,7 +182,7 @@ function CategoryForm({
       onDone()
     } catch (err) {
       const m = errorMessage(err)
-      toast(m.includes('duplicate') ? 'Mã nhóm đã tồn tại' : m, 'error')
+      toast(m.includes('duplicate') ? 'Nhóm này đã tồn tại, hãy thử tên khác' : m, 'error')
     } finally {
       setBusy(false)
     }
@@ -195,12 +202,9 @@ function CategoryForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-[4.5rem_1fr] gap-3">
-        <label className="block">
-          <span className="label">Icon</span>
-          <input className="input text-center text-xl" value={icon} maxLength={4} onChange={(e) => setIcon(e.target.value)} placeholder="📦" />
-        </label>
-        <label className="block">
+      <div className="flex items-end gap-3">
+        <CategoryIcon icon={icon} color={color} size={48} />
+        <label className="block flex-1">
           <span className="label">Tên nhóm *</span>
           <input
             className="input"
@@ -208,38 +212,22 @@ function CategoryForm({
             maxLength={60}
             value={name}
             autoFocus
-            onChange={(e) => {
-              setName(e.target.value)
-              if (!initial && !codeTouched) setCode(slugify(e.target.value))
-            }}
+            onChange={(e) => setName(e.target.value)}
             placeholder="vd. Tiền hàng"
           />
         </label>
       </div>
-      <label className="block">
-        <span className="label">Mã (category_code)</span>
-        <input
-          className="input font-mono text-sm"
-          required
-          pattern="[a-z0-9_]{2,40}"
-          value={code}
-          disabled={Boolean(initial)}
-          onChange={(e) => {
-            setCodeTouched(true)
-            setCode(e.target.value.toLowerCase())
-          }}
-        />
-        <span className="mt-1 block text-xs text-muted">
-          {initial ? 'Mã không đổi được sau khi tạo.' : 'Chữ thường không dấu, số, dấu gạch dưới. Tự sinh theo tên.'}
-        </span>
-      </label>
       <div>
         <span className="label">Màu</span>
         <ColorPicker value={color} onChange={setColor} />
       </div>
+      <div>
+        <span className="label">Icon</span>
+        <IconPicker value={icon} color={color} onChange={setIcon} />
+      </div>
       <div className="flex flex-wrap gap-2 pt-2">
         <button className="btn-primary" disabled={busy}>
-          Lưu
+          <Save className="h-4 w-4" /> Lưu
         </button>
         <button type="button" className="btn-ghost" onClick={onDone}>
           Huỷ

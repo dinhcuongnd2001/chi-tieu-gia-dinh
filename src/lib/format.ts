@@ -39,3 +39,16 @@ export function pctChange(cur: number, prev: number): number | null {
 
 export const fmtPct = (p: number) =>
   `${p > 0 ? '+' : ''}${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(p * 100)}%`
+
+/** Sinh mã từ tên, đảm bảo hợp lệ (a-z0-9_, 2-40 ký tự) và không trùng mã đã có */
+export function uniqueCode(name: string, existing: Iterable<string>, fallback = 'muc'): string {
+  const taken = new Set(existing)
+  let base = slugify(name) || fallback
+  if (base.length < 2) base = `${base}_${fallback}`
+  base = base.slice(0, 36)
+  if (!taken.has(base)) return base
+  for (let i = 2; ; i++) {
+    const c = `${base}_${i}`
+    if (!taken.has(c)) return c
+  }
+}

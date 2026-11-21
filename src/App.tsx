@@ -6,7 +6,8 @@ import { Layout } from './components/Layout'
 import { FullPageSpinner, ToastProvider } from './components/ui'
 import { supabaseConfigured } from './lib/supabase'
 import { AuthShell, Login, SetPassword } from './pages/Login'
-import { AddTransaction } from './pages/AddTransaction'
+import { Dashboard } from './pages/Dashboard'
+import { QuickAddProvider } from './context/QuickAddContext'
 import { History } from './pages/History'
 import { Categories } from './pages/Categories'
 import { CategoryDetail } from './pages/CategoryDetail'
@@ -52,9 +53,10 @@ function AppRoutes() {
   const { loading } = useCatalog()
   if (loading) return <FullPageSpinner />
   return (
-    <Routes>
+    <QuickAddProvider>
+      <Routes>
       <Route element={<Layout />}>
-        <Route index element={<AddTransaction />} />
+        <Route index element={<Dashboard />} />
         <Route path="lich-su" element={<History />} />
         <Route
           path="thong-ke"
@@ -69,7 +71,8 @@ function AppRoutes() {
         <Route path="tai-khoan" element={<Account />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-    </Routes>
+      </Routes>
+    </QuickAddProvider>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { PageHeader } from '../components/Layout'
-import { Modal, useToast } from '../components/ui'
+import { KeyRound, LogOut, Pencil, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { Avatar, Modal, useToast } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useCatalog } from '../context/CatalogContext'
 import { errorMessage } from '../lib/api'
@@ -16,11 +17,20 @@ export function Account() {
 
   return (
     <>
-      <PageHeader title="Tài khoản" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="card p-4 sm:p-5">
-          <h2 className="mb-3 font-semibold">Của tôi</h2>
-          <dl className="mb-4 space-y-1 text-sm">
+      <PageHeader title="Tài khoản" sub="Thông tin cá nhân và thành viên gia đình" />
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <section className="card p-5 sm:p-6">
+          <h3 className="card-title mb-4">Của tôi</h3>
+          <div className="mb-4 flex items-center gap-3">
+            <Avatar name={member?.display_name ?? '?'} seed={member?.email} size={48} />
+            <div>
+              <div className="font-display text-lg font-bold">{member?.display_name}</div>
+              <div className="inline-flex items-center gap-1 text-xs font-semibold text-accent-deep">
+                <ShieldCheck className="h-3.5 w-3.5" /> {isAdmin ? 'Admin' : 'Thành viên'}
+              </div>
+            </div>
+          </div>
+          <dl className="mb-4 space-y-1.5 rounded-xl border border-line-2 bg-white/60 p-3.5 text-sm">
             <div className="flex gap-2">
               <dt className="w-20 text-muted">Tên</dt>
               <dd className="font-medium">{member?.display_name}</dd>
@@ -35,44 +45,45 @@ export function Account() {
             </div>
           </dl>
           <ChangePassword />
-          <button className="btn-ghost mt-4 w-full" onClick={signOut}>
-            Đăng xuất
+          <button className="btn-danger mt-3 w-full" onClick={signOut}>
+            <LogOut className="h-4 w-4" /> Đăng xuất
           </button>
         </section>
 
-        <section className="card p-4 sm:p-5">
+        <section className="card p-5 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold">Thành viên gia đình</h2>
+            <h3 className="card-title"><Users className="h-4 w-4" /> Thành viên gia đình</h3>
             {isAdmin && (
-              <button className="btn-primary py-1.5" onClick={() => setEditing('new')}>
-                + Thêm
+              <button className="btn-primary px-3.5 py-2 text-[13px]" onClick={() => setEditing('new')}>
+                <UserPlus className="h-4 w-4" /> Thêm
               </button>
             )}
           </div>
           <ul className="divide-y divide-line">
             {members.map((m) => (
               <li key={m.id} className="flex items-center gap-3 py-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 font-semibold">
-                  {m.display_name.charAt(0).toUpperCase()}
-                </span>
+                <Avatar name={m.display_name} seed={m.email} size={36} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">
-                    {m.display_name} {m.role === 'admin' && <span className="text-xs text-accent">· admin</span>}
+                    {m.display_name}{' '}
+                    {m.role === 'admin' && (
+                      <span className="ml-1 rounded-full bg-[rgba(176,132,64,.14)] px-2 py-0.5 text-[11px] font-semibold text-accent-deep">admin</span>
+                    )}
                   </span>
                   <span className="block truncate text-xs text-muted">
                     {m.email} {!m.user_id && '· chưa đăng nhập lần nào'}
                   </span>
                 </span>
                 {isAdmin && (
-                  <button className="text-sm text-accent" onClick={() => setEditing(m)}>
-                    Sửa
+                  <button className="btn-icon h-9 w-9" onClick={() => setEditing(m)} aria-label="Sửa">
+                    <Pencil className="h-4 w-4" />
                   </button>
                 )}
               </li>
             ))}
           </ul>
           {isAdmin && (
-            <p className="mt-3 rounded-lg bg-surface-2 p-3 text-xs text-ink-2">
+            <p className="mt-4 rounded-xl border border-[rgba(47,74,122,.18)] bg-[rgba(47,74,122,.06)] p-3.5 text-xs leading-relaxed text-link">
               Sau khi thêm email ở đây, vào <b>Supabase → Authentication → Users → Invite user</b> để gửi lời mời. Người được mời bấm
               link trong email, đặt mật khẩu là dùng được.
             </p>
@@ -80,7 +91,7 @@ export function Account() {
         </section>
       </div>
 
-      <Modal open={editing !== null} title={editing === 'new' ? 'Thêm thành viên' : 'Sửa thành viên'} onClose={() => setEditing(null)}>
+      <Modal open={editing !== null} title={editing === 'new' ? 'Thêm thành viên' : 'Sửa thành viên'} icon={editing === 'new' ? UserPlus : Pencil} onClose={() => setEditing(null)}>
         {editing !== null && (
           <MemberForm
             key={editing === 'new' ? 'new' : editing.id}
@@ -119,7 +130,7 @@ function ChangePassword() {
   if (!open)
     return (
       <button className="btn-ghost w-full" onClick={() => setOpen(true)}>
-        Đổi mật khẩu
+        <KeyRound className="h-4 w-4" /> Đổi mật khẩu
       </button>
     )
   return (

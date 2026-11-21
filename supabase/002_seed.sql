@@ -16,9 +16,9 @@ on conflict (email) do update set role = 'admin';
 -- Danh mục mẫu
 -- ---------------------------------------------------------------------
 insert into public.categories (code, name, color, icon, sort_order) values
-  ('tien_hang', 'Tiền hàng',            '#2a78d6', '📦', 1),
-  ('sinh_hoat', 'Sinh hoạt hằng ngày',  '#eb6834', '🏠', 2),
-  ('thu_nhap',  'Thu nhập',             '#1baf7a', '💰', 3)
+  ('tien_hang', 'Tiền hàng',            '#2a78d6', 'package', 1),
+  ('sinh_hoat', 'Sinh hoạt hằng ngày',  '#eb6834', 'house',   2),
+  ('thu_nhap',  'Thu nhập',             '#1baf7a', 'money',   3)
 on conflict (code) do nothing;
 
 insert into public.category_items (category_code, code, name, direction, sort_order) values

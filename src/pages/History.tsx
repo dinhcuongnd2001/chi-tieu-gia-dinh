@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { DatePicker } from '../components/DatePicker'
 import { PageHeader } from '../components/Layout'
 import { TransactionEditModal, TransactionRow } from '../components/TransactionRow'
-import { EmptyState, Spinner, useToast } from '../components/ui'
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, Download, Scale, Search, SearchX, SlidersHorizontal } from 'lucide-react'
+import { EmptyState, SkeletonList, StatTile, useToast } from '../components/ui'
 import { useCatalog } from '../context/CatalogContext'
+import { useDataVersion } from '../lib/dataSync'
 import { errorMessage, fetchTransactions } from '../lib/api'
 import { fmtMoney } from '../lib/format'
 import { dateHeading, dayjs, ymd } from '../lib/period'
@@ -21,6 +24,7 @@ const PAGE_DAYS = 30
 export function History() {
   const { categories, items, badges, members, categoryByCode, itemById, badgeById, memberNameByUserId } = useCatalog()
   const toast = useToast()
+  const { version } = useDataVersion()
 
   const [from, setFrom] = useState(ymd(dayjs().startOf('month')))
   const [to, setTo] = useState(ymd(dayjs().endOf('month')))
@@ -38,18 +42,21 @@ export function History() {
   const [daysShown, setDaysShown] = useState(PAGE_DAYS)
 
   const load = useCallback(async () => {
-    setRows(null)
     try {
       setRows(await fetchTransactions(from, to))
     } catch (e) {
       toast(errorMessage(e), 'error')
       setRows([])
     }
-  }, [from, to, toast])
+  }, [from, to, toast, version])
+
+  useEffect(() => {
+    setRows(null)
+    setDaysShown(PAGE_DAYS)
+  }, [from, to])
 
   useEffect(() => {
     load()
-    setDaysShown(PAGE_DAYS)
   }, [load])
 
   const filtered = useMemo(() => {
@@ -116,14 +123,14 @@ export function History() {
 
   return (
     <>
-      <PageHeader title="Lịch sử">
+      <PageHeader title="Lịch sử" sub="Tra cứu, lọc và chỉnh sửa giao dịch">
         <button className="btn-ghost" onClick={exportExcel} disabled={!filtered.length}>
-          ⤓ Xuất Excel
+          <Download className="h-4 w-4" /> Xuất Excel
         </button>
       </PageHeader>
 
-      <div className="card mb-4 space-y-3 p-3 sm:p-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="card mb-4 space-y-3 p-3.5 sm:p-5">
+        <div className="seg max-w-full flex-wrap">
           {PRESETS.map((p) => {
             const [a, b] = p.range()
             const active = ymd(a) === from && ymd(b) === to
@@ -134,7 +141,7 @@ export function History() {
                   setFrom(ymd(a))
                   setTo(ymd(b))
                 }}
-                className={`rounded-full border px-3 py-1 text-sm ${active ? 'border-accent bg-accent/12 font-semibold text-accent' : 'border-line text-ink-2 hover:bg-surface-2'}`}
+                aria-pressed={active}
               >
                 {p.label}
               </button>
@@ -142,17 +149,31 @@ export function History() {
           })}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_2fr_auto]">
-          <label>
-            <span className="sr-only">Từ ngày</span>
-            <input type="date" className="input py-2 text-sm" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} />
-          </label>
-          <label>
-            <span className="sr-only">Đến ngày</span>
-            <input type="date" className="input py-2 text-sm" value={to} onChange={(e) => e.target.value && setTo(e.target.value)} />
-          </label>
-          <input className="input col-span-2 py-2 text-sm sm:col-span-1" placeholder="Tìm theo ghi chú, tên khoản…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <DatePicker
+            value={from}
+            max={to}
+            ariaLabel="Từ ngày"
+            className="w-full py-2"
+            onChange={(v) => v && setFrom(v)}
+          />
+          <DatePicker
+            value={to}
+            min={from}
+            ariaLabel="Đến ngày"
+            className="w-full py-2"
+            onChange={(v) => v && setTo(v)}
+          />
+          <div className="relative col-span-2 flex items-center sm:col-span-1">
+            <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-muted" />
+            <input className="input py-2 pl-10 text-sm" placeholder="Tìm theo ghi chú, tên khoản…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
           <button className="btn-ghost col-span-2 py-2 sm:col-span-1" onClick={() => setShowFilters((v) => !v)}>
-            Bộ lọc{activeFilterCount ? ` (${activeFilterCount})` : ''} {showFilters ? '▴' : '▾'}
+            <SlidersHorizontal className="h-4 w-4" />
+            Bộ lọc
+            {activeFilterCount > 0 && (
+              <span className="bg-grad grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] text-white">{activeFilterCount}</span>
+            )}
+            <ChevronDown className={`h-4 w-4 transition ${showFilters ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
@@ -223,7 +244,7 @@ export function History() {
                 ))}
             </select>
             {activeFilterCount > 0 && (
-              <button className="col-span-2 text-left text-sm text-accent sm:col-span-3 lg:col-span-6" onClick={resetFilters}>
+              <button className="col-span-2 text-left text-sm font-semibold text-link hover:underline sm:col-span-3 lg:col-span-6" onClick={resetFilters}>
                 Xoá bộ lọc
               </button>
             )}
@@ -231,29 +252,29 @@ export function History() {
         )}
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        <Summary label="Tiền vào" value={fmtMoney(totalIn)} className="text-in" />
-        <Summary label="Tiền ra" value={fmtMoney(totalOut)} className="text-out" />
-        <Summary label="Chênh lệch" value={fmtMoney(totalIn - totalOut)} />
+      <div className="mb-5 grid grid-cols-3 gap-2.5">
+        <StatTile compact label="Tiền vào" value={fmtMoney(totalIn)} tone="in" icon={ArrowDownLeft} />
+        <StatTile compact label="Tiền ra" value={fmtMoney(totalOut)} tone="out" icon={ArrowUpRight} />
+        <StatTile compact label="Chênh lệch" value={fmtMoney(totalIn - totalOut)} icon={Scale} />
       </div>
 
       {rows === null ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <SkeletonList rows={5} />
       ) : groups.length === 0 ? (
-        <EmptyState>Không có giao dịch nào phù hợp.</EmptyState>
+        <EmptyState icon={SearchX} title="Không có giao dịch">
+          Không tìm thấy giao dịch nào trong khoảng ngày / bộ lọc đã chọn.
+        </EmptyState>
       ) : (
         <div className="space-y-4">
-          <p className="text-xs text-muted">{filtered.length} giao dịch</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{filtered.length} giao dịch</p>
           {groups.slice(0, daysShown).map(([date, list]) => {
             const dIn = list.filter((t) => t.direction === 'in').reduce((s, t) => s + t.amount, 0)
             const dOut = list.filter((t) => t.direction === 'out').reduce((s, t) => s + t.amount, 0)
             return (
               <section key={date}>
-                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 px-1">
-                  <h2 className="text-sm font-semibold">{dateHeading(date)}</h2>
-                  <span className="tabular text-xs text-muted">
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 px-1">
+                  <h3 className="text-[13.5px] font-bold">{dateHeading(date)}</h3>
+                  <span className="font-display tabular text-xs font-semibold text-muted">
                     {dIn > 0 && <span className="text-in">+{fmtMoney(dIn)}</span>}
                     {dIn > 0 && dOut > 0 && ' · '}
                     {dOut > 0 && <span className="text-out">−{fmtMoney(dOut)}</span>}
@@ -275,16 +296,8 @@ export function History() {
         </div>
       )}
 
-      <TransactionEditModal txn={editing} onClose={() => setEditing(null)} onChanged={load} />
+      <TransactionEditModal txn={editing} onClose={() => setEditing(null)} onChanged={() => {}} />
     </>
   )
 }
 
-function Summary({ label, value, className = '' }: { label: string; value: string; className?: string }) {
-  return (
-    <div className="card px-3 py-2.5">
-      <div className="text-xs text-muted">{label}</div>
-      <div className={`tabular truncate text-sm font-bold sm:text-lg ${className}`}>{value}</div>
-    </div>
-  )
-}

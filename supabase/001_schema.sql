@@ -55,7 +55,7 @@ create table if not exists public.categories (
   code        text not null unique check (code ~ '^[a-z0-9_]{2,40}$'),
   name        text not null check (char_length(name) between 1 and 60),
   color       text not null default '#2a78d6' check (color ~ '^#[0-9a-fA-F]{6}$'),
-  icon        text check (char_length(icon) <= 8),
+  icon        text check (char_length(icon) <= 40),  -- key icon (vd. 'package') hoặc emoji
   sort_order  int  not null default 0,
   is_active   boolean not null default true,
   created_by  uuid default auth.uid() references auth.users(id) on delete set null,

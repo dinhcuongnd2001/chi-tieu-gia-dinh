@@ -2,12 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ColorPicker } from '../components/ColorPicker'
 import { PageHeader } from '../components/Layout'
+import { ArrowLeft, Eye, EyeOff, ListPlus, Pencil, Plus, Tag } from 'lucide-react'
 import { DirectionTag, EmptyState, Modal, useToast } from '../components/ui'
 import { useCatalog } from '../context/CatalogContext'
 import { errorMessage } from '../lib/api'
-import { slugify } from '../lib/format'
+import { uniqueCode } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import { CATEGORY_COLORS, type Badge, type CategoryItem, type Direction } from '../lib/types'
+import { CategoryIcon } from '../lib/categoryIcons'
 
 export function CategoryDetail() {
   const { code = '' } = useParams()
@@ -34,39 +36,41 @@ export function CategoryDetail() {
 
   return (
     <>
-      <Link to="/danh-muc" className="mb-2 inline-block text-sm text-accent">
-        ← Danh mục
+      <Link to="/danh-muc" className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-link hover:underline">
+        <ArrowLeft className="h-4 w-4" /> Danh mục
       </Link>
-      <PageHeader title={`${cat.icon ?? ''} ${cat.name}`.trim()}>
+      <div className="mb-1">
+        <CategoryIcon icon={cat.icon} color={cat.color} size={52} />
+      </div>
+      <PageHeader title={cat.name}>
         <button className="btn-primary" onClick={() => setEditingItem('new')}>
-          + Thêm khoản
+          <Plus className="h-4 w-4" /> Thêm khoản
         </button>
       </PageHeader>
 
       {visible.length === 0 ? (
-        <EmptyState>Nhóm này chưa có khoản nào.</EmptyState>
+        <EmptyState icon={ListPlus} title="Chưa có khoản nào">Bấm “Thêm khoản” để tạo khoản con cho nhóm này.</EmptyState>
       ) : (
         <div className="space-y-3">
           {visible.map((it) => {
             const itBadges = badges.filter((b) => b.item_id === it.id && (showHidden || b.is_active))
             return (
-              <div key={it.id} className={`card p-4 ${it.is_active ? '' : 'opacity-60'}`}>
+              <div key={it.id} className={`card p-4 sm:p-5 ${it.is_active ? '' : 'opacity-60'}`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold">{it.name}</span>
+                  <span className="font-display text-[15.5px] font-bold">{it.name}</span>
                   <DirectionTag direction={it.direction} />
-                  <code className="text-xs text-muted">{it.code}</code>
-                  {!it.is_active && <span className="rounded bg-surface-2 px-1.5 text-xs text-muted">Đã ẩn</span>}
-                  <button className="ml-auto text-sm text-accent" onClick={() => setEditingItem(it)}>
-                    Sửa
+                  {!it.is_active && <span className="rounded-full bg-[rgba(60,48,28,.06)] px-2 py-0.5 text-[11px] font-semibold text-muted">Đã ẩn</span>}
+                  <button className="btn-ghost ml-auto px-3 py-1.5 text-[13px]" onClick={() => setEditingItem(it)}>
+                    <Pencil className="h-3.5 w-3.5" /> Sửa
                   </button>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted">Badge:</span>
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted"><Tag className="h-3.5 w-3.5" /> Badge</span>
                   {itBadges.map((b) => (
                     <button
                       key={b.id}
                       onClick={() => setEditingBadge({ item: it, badge: b })}
-                      className={`inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-medium hover:border-accent ${b.is_active ? '' : 'line-through opacity-60'}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-white/80 px-2.5 py-1 text-xs font-semibold transition hover:border-accent hover:bg-white ${b.is_active ? '' : 'line-through opacity-60'}`}
                     >
                       <span className="h-2 w-2 rounded-full" style={{ background: b.color }} />
                       {b.name}
@@ -74,9 +78,9 @@ export function CategoryDetail() {
                   ))}
                   <button
                     onClick={() => setEditingBadge({ item: it, badge: null })}
-                    className="rounded-full border border-dashed border-line px-2.5 py-1 text-xs text-accent hover:border-accent"
+                    className="inline-flex items-center gap-1 rounded-full border border-dashed border-accent/50 px-2.5 py-1 text-xs font-semibold text-accent-deep transition hover:border-accent hover:bg-white/70"
                   >
-                    + Badge
+                    <Plus className="h-3.5 w-3.5" /> Badge
                   </button>
                 </div>
               </div>
@@ -86,12 +90,13 @@ export function CategoryDetail() {
       )}
 
       {hiddenCount > 0 && (
-        <button className="mt-4 text-sm text-accent" onClick={() => setShowHidden((v) => !v)}>
+        <button className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-link hover:underline" onClick={() => setShowHidden((v) => !v)}>
+          {showHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           {showHidden ? 'Ẩn mục đã ẩn' : `Hiện ${hiddenCount} khoản đã ẩn`}
         </button>
       )}
 
-      <Modal open={editingItem !== null} title={editingItem === 'new' ? 'Thêm khoản' : 'Sửa khoản'} onClose={() => setEditingItem(null)}>
+      <Modal open={editingItem !== null} title={editingItem === 'new' ? 'Thêm khoản' : 'Sửa khoản'} icon={editingItem === 'new' ? ListPlus : Pencil} onClose={() => setEditingItem(null)}>
         {editingItem !== null && (
           <ItemForm
             key={editingItem === 'new' ? 'new' : editingItem.id}
@@ -103,7 +108,7 @@ export function CategoryDetail() {
         )}
       </Modal>
 
-      <Modal open={editingBadge !== null} title={editingBadge?.badge ? 'Sửa badge' : `Thêm badge cho “${editingBadge?.item.name}”`} onClose={() => setEditingBadge(null)}>
+      <Modal open={editingBadge !== null} title={editingBadge?.badge ? 'Sửa badge' : `Thêm badge cho “${editingBadge?.item.name}”`} icon={Tag} onClose={() => setEditingBadge(null)}>
         {editingBadge && (
           <BadgeForm
             key={editingBadge.badge?.id ?? 'new'}
@@ -129,11 +134,9 @@ function ItemForm({
   nextOrder: number
   onDone: () => void
 }) {
-  const { reload } = useCatalog()
+  const { reload, items } = useCatalog()
   const toast = useToast()
   const [name, setName] = useState(initial?.name ?? '')
-  const [code, setCode] = useState(initial?.code ?? '')
-  const [codeTouched, setCodeTouched] = useState(false)
   const [direction, setDirection] = useState<Direction>(initial?.direction ?? 'out')
   const [sortOrder, setSortOrder] = useState(initial?.sort_order ?? nextOrder)
   const [busy, setBusy] = useState(false)
@@ -151,7 +154,13 @@ function ItemForm({
       } else {
         await supabase
           .from('category_items')
-          .insert({ category_code: categoryCode, name: name.trim(), code, direction, sort_order: sortOrder })
+          .insert({
+            category_code: categoryCode,
+            name: name.trim(),
+            code: uniqueCode(name, items.filter((i) => i.category_code === categoryCode).map((i) => i.code), 'khoan'),
+            direction,
+            sort_order: sortOrder,
+          })
           .throwOnError()
       }
       await reload()
@@ -159,7 +168,7 @@ function ItemForm({
       onDone()
     } catch (err) {
       const m = errorMessage(err)
-      toast(m.includes('duplicate') ? 'Mã khoản đã tồn tại trong nhóm' : m, 'error')
+      toast(m.includes('duplicate') ? 'Khoản này đã tồn tại trong nhóm' : m, 'error')
     } finally {
       setBusy(false)
     }
@@ -187,24 +196,7 @@ function ItemForm({
           maxLength={60}
           value={name}
           placeholder="vd. Nhập hàng"
-          onChange={(e) => {
-            setName(e.target.value)
-            if (!initial && !codeTouched) setCode(slugify(e.target.value))
-          }}
-        />
-      </label>
-      <label className="block">
-        <span className="label">Mã</span>
-        <input
-          className="input font-mono text-sm"
-          required
-          pattern="[a-z0-9_]{2,40}"
-          value={code}
-          disabled={Boolean(initial)}
-          onChange={(e) => {
-            setCodeTouched(true)
-            setCode(e.target.value.toLowerCase())
-          }}
+          onChange={(e) => setName(e.target.value)}
         />
       </label>
       <div>
@@ -216,8 +208,8 @@ function ItemForm({
               type="button"
               onClick={() => setDirection(d)}
               aria-pressed={direction === d}
-              className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${
-                direction === d ? (d === 'in' ? 'border-in bg-[var(--series-in)]/12 text-in' : 'border-out bg-[var(--series-out)]/12 text-out') : 'border-line text-ink-2'
+              className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                direction === d ? (d === 'in' ? 'border-in bg-[rgba(4,120,87,.1)] text-in shadow-[0_0_0_3px_rgba(4,120,87,.1)]' : 'border-out bg-[rgba(220,38,38,.08)] text-out shadow-[0_0_0_3px_rgba(220,38,38,.08)]') : 'border-line-2 bg-white/70 text-ink-2 hover:bg-white'
               }`}
             >
               {d === 'out' ? '↑ Tiền ra (chi)' : '↓ Tiền vào (thu)'}

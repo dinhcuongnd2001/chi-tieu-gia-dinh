@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { errorMessage } from '../lib/api'
 import { Spinner } from '../components/ui'
+import { Logo } from '../components/Layout'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -55,7 +56,7 @@ export function Login() {
         )}
         {msg && <p className={`text-sm ${msg.ok ? 'text-in' : 'text-danger'}`}>{msg.text}</p>}
         <button className="btn-primary w-full" disabled={busy}>
-          {busy && <Spinner className="h-4 w-4 border-white/40 border-t-white" />}
+          {busy && <Spinner className="h-4 w-4 text-white" />}
           {mode === 'login' ? 'Đăng nhập' : 'Gửi link đặt lại'}
         </button>
         <button
@@ -115,10 +116,14 @@ export function SetPassword({ onDone }: { onDone: () => void }) {
 
 export function AuthShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh items-center justify-center p-4">
-      <div className="card w-full max-w-sm p-6 shadow-sm">
-        <div className="mb-1 text-2xl">💸</div>
-        <h1 className="mb-5 text-xl font-bold">{title}</h1>
+    <div className="flex min-h-dvh items-center justify-center p-5">
+      <div className="grid-bg" />
+      <div className="card w-full max-w-[380px] p-7 animate-rise">
+        <div className="mb-4 flex justify-center">
+          <Logo size={60} />
+        </div>
+        <h1 className="text-gradient mb-1 text-center font-display text-2xl font-bold">{title}</h1>
+        <p className="mb-6 text-center text-[12.5px] text-muted">Chi tiêu gia đình</p>
         {children}
       </div>
     </div>
